@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+require('dotenv').config()
 const semverGte = require('semver/functions/gte')
 const semverCoerce = require('semver/functions/coerce')
 const { hasValidAddress } = require('../hasValidAddress')
@@ -18,10 +19,21 @@ function findDuplicates (operators) {
   const addresses = new Set()
   const ips = new Set()
   const duplicates = []
+  const whitelist = (process.env.WHITELISTED_IPS || '')
+      .split(',')
+      .map(ip => ip.trim().toLowerCase())
+      .filter(ip => ip.length > 0)
+  
   for (const op of operators) {
     const ip = op.real_ip
     const only3 = ip.substr(0, ip.lastIndexOf('.'))
     const only2 = ip.substr(0, only3.lastIndexOf('.'))
+    const isWhitelisted = whitelist.some(pattern => {
+        return ip === pattern || ip.startsWith('${pattern}.')
+    })
+    if (isWhitelisted) {
+        continue
+    }    
     if (platforms.has(op.platform) ||
       addresses.has(op.announced_address) ||
       ips.has(only2)
